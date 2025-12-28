@@ -1,0 +1,14 @@
+name: finwin
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - requests
+  - feedparser
+  - beautifulsoup4
+  - pip:
+      - trafilatura
+      - yfinance
+      - pdfminer.six
