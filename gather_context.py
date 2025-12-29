@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse, quote_plus
+import base64
 
 import logging
 import requests
@@ -125,6 +126,97 @@ def fetch_url(
 
     except Exception as e:
         return FetchResult(url, -1, "", None, None, str(e))
+
+def resolve_google_news_url(url: str, sess: requests.Session) -> str:
+    """
+    Google News RSS links require a special API call to resolve to the actual article URL.
+    This fetches the page, extracts the data-p attribute, and calls Google's batchexecute API.
+    """
+    if "news.google.com/rss/articles/" not in url:
+        return url
+    
+    try:
+        browser_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+        }
+        
+        # Step 1: Fetch the Google News article page
+        r = sess.get(url, headers=browser_headers, timeout=DEFAULT_TIMEOUT)
+        if r.status_code != 200:
+            logger.warning(f"Failed to fetch Google News page: {r.status_code}")
+            return url
+        
+        # Step 2: Parse and extract data-p attribute from c-wiz element
+        soup = BeautifulSoup(r.text, "html.parser")
+        cwiz = soup.find("c-wiz", attrs={"data-p": True})
+        if not cwiz:
+            logger.warning("Could not find c-wiz[data-p] element")
+            return url
+        
+        data_p = cwiz.get("data-p")
+        if not data_p:
+            logger.warning("data-p attribute is empty")
+            return url
+        
+        # Step 3: Parse the data-p JSON (it has a weird prefix)
+        # Format: %.@.[...] needs to become ["garturlreq",[...]
+        try:
+            json_str = data_p.replace('%.@.', '["garturlreq",')
+            obj = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse data-p JSON: {e}")
+            return url
+        
+        # Step 4: Build the payload for batchexecute API
+        # The payload uses a subset of the parsed object
+        req_data = obj[:-6] + obj[-2:]  # Remove middle elements, keep first part and last 2
+        
+        payload = {
+            'f.req': json.dumps([[["Fbv4je", json.dumps(req_data), "null", "generic"]]])
+        }
+        
+        post_headers = {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+        }
+        
+        # Step 5: Call the batchexecute API
+        post_r = sess.post(
+            "https://news.google.com/_/DotsSplashUi/data/batchexecute",
+            data=payload,
+            headers=post_headers,
+            timeout=DEFAULT_TIMEOUT
+        )
+        
+        if post_r.status_code != 200:
+            logger.warning(f"batchexecute API returned {post_r.status_code}")
+            return url
+        
+        # Step 6: Parse the response
+        # Response format: )]}'<newline><json>
+        response_text = post_r.text
+        if response_text.startswith(")]}'"):
+            response_text = response_text[4:].strip()
+        
+        try:
+            response_json = json.loads(response_text)
+            # Navigate: [0][2] contains a JSON string, parse it, then [1] is the URL
+            array_string = response_json[0][2]
+            inner_array = json.loads(array_string)
+            article_url = inner_array[1]
+            
+            if article_url and article_url.startswith("http"):
+                logger.info(f"Resolved Google News URL: {article_url}")
+                return article_url
+        except (json.JSONDecodeError, IndexError, KeyError, TypeError) as e:
+            logger.warning(f"Failed to parse batchexecute response: {e}")
+            return url
+            
+    except Exception as e:
+        logger.warning(f"Failed to resolve Google News URL: {e}")
+    
+    return url
+
 
 def google_news_rss(query: str, country: str = "IN", lang: str = "en") -> str:
     # No key needed. Change country/lang if you want.
@@ -247,7 +339,10 @@ def main() -> None:
         for item in news_items:
             link = item.get("link")
             if link:
-                fr = fetch_url(sess, link, out_downloads, out_raw_text, sleep_s=args.sleep)
+                # Resolve Google News redirect URLs to actual article URLs
+                resolved_link = resolve_google_news_url(link, sess)
+                item["resolved_link"] = resolved_link  # Store the resolved URL
+                fr = fetch_url(sess, resolved_link, out_downloads, out_raw_text, sleep_s=args.sleep)
                 context["fetches"].append(asdict(fr))
 
     # 3) Fetch user-provided URLs (filings, company site, PDFs, etc.)
