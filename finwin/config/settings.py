@@ -76,11 +76,20 @@ class CacheConfig(BaseSettings):
         extra="ignore",
     )
     
-    # Cache backend: memory, redis, dynamodb
-    backend: Literal["memory", "redis", "dynamodb"] = "memory"
+    # Cache backend: memory, file, redis, dynamodb
+    type: Literal["memory", "file", "redis", "dynamodb"] = "file"
+    
+    # File cache directory
+    directory: str = ".cache"
     
     # TTL in seconds
-    default_ttl: int = 300
+    default_ttl: int = 86400  # 24 hours
+    
+    # Macro data TTL (7 days for annual data)
+    macro_ttl: int = 604800
+    
+    # News/financials TTL (1 hour)
+    realtime_ttl: int = 3600
     
     # Redis settings
     redis_url: Optional[str] = None

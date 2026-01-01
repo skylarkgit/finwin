@@ -17,6 +17,7 @@ class ProviderType(str, Enum):
     WEB = "web"
     API = "api"
     SEARCH = "search"
+    MACRO = "macro"  # Macroeconomic data (GDP, inflation, etc.)
 
 
 class ProviderResult(BaseModel):

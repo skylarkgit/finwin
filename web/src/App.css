@@ -38,20 +38,81 @@ body {
 
 .app-header {
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg) 100%);
   border-bottom: 1px solid var(--color-border);
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .app-header h1 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 0.25rem;
+  margin: 0;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nav-btn {
+  padding: 0.625rem 1.25rem;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.nav-btn:hover {
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  border-color: var(--color-text-secondary);
+}
+
+.nav-btn.active {
+  background: var(--color-primary);
+  color: #000;
+  border-color: var(--color-primary);
+}
+
+.nav-btn.active:hover {
+  background: var(--color-primary-dim);
+  border-color: var(--color-primary-dim);
 }
 
 .app-header .subtitle {
   color: var(--color-text-secondary);
-  font-size: 1rem;
+  font-size: 0.95rem;
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .app-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .nav-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
 }
 
 .app-main {

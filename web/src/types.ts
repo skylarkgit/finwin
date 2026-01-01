@@ -69,3 +69,70 @@ export interface StockContext {
   source_results: SourceResult[];
   all_texts: string[];
 }
+
+// =============================================================================
+// Macro Dashboard Types
+// =============================================================================
+
+export interface MacroDataPoint {
+  date: string;
+  year: number;
+  value: number | null;
+  is_estimate?: boolean;
+  is_forecast?: boolean;
+}
+
+export interface MacroTimeSeries {
+  indicator_id: string;
+  indicator_name: string;
+  country_code: string;
+  country_name: string;
+  data: MacroDataPoint[];
+  unit: string;
+  scale: string;
+  frequency: string;
+  source: string;
+  last_updated: string | null;
+}
+
+export interface CountryInfo {
+  code: string;
+  name: string;
+  region: string;
+  income_level: string;
+  capital: string;
+  latest_gdp: number | null;
+  latest_gdp_year: number | null;
+  gdp_growth: number | null;
+}
+
+export interface MacroIndicatorInfo {
+  id: string;
+  name: string;
+  description: string;
+  unit: string;
+  source: string;
+  worldbank_code: string | null;
+  fred_code: string | null;
+  imf_code: string | null;
+}
+
+export interface GlobalGDPSummary {
+  world_gdp_total: number | null;
+  world_gdp_year: number | null;
+  world_gdp_growth: number | null;
+  world_gdp_history: MacroDataPoint[];
+  top_countries: CountryInfo[];
+  region_totals: Record<string, number>;
+  data_source: string;
+  last_updated: string | null;
+  countries_count: number;
+}
+
+export interface MacroDashboardData {
+  gdp_summary: GlobalGDPSummary;
+  countries: CountryInfo[];
+  gdp_by_country: Record<string, MacroTimeSeries>;
+  generated_at: string;
+  cache_ttl: number;
+}
