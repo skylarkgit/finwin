@@ -32,7 +32,7 @@ export function MacroDashboard() {
     setError(null);
     
     try {
-      const result = await fetchMacroDashboard(undefined, undefined, 100);
+      const result = await fetchMacroDashboard(undefined, undefined, 300);
       setData(result);
       setSelectedCountries(result.countries.slice(0, 5).map(c => c.code));
     } catch (err) {
@@ -72,6 +72,12 @@ export function MacroDashboard() {
           break;
         case 'gdp_per_capita':
           comparison = (a.gdp_per_capita ?? 0) - (b.gdp_per_capita ?? 0);
+          break;
+        case 'fdi_net':
+          comparison = (a.fdi_net ?? 0) - (b.fdi_net ?? 0);
+          break;
+        case 'trade_balance':
+          comparison = (a.trade_balance ?? 0) - (b.trade_balance ?? 0);
           break;
       }
       return sortDirection === 'desc' ? -comparison : comparison;

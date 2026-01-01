@@ -98,7 +98,7 @@ async def get_macro_dashboard(
         None, description="End year (default: current year)"
     ),
     top_n: int = Query(
-        20, description="Number of top countries to include", ge=5, le=200
+        20, description="Number of top countries to include", ge=5, le=500
     ),
 ) -> MacroDashboardData:
     """

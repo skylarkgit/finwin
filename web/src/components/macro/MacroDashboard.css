@@ -402,6 +402,30 @@
   color: #e74c3c;
 }
 
+.economies-table .fdi-net {
+  font-weight: 500;
+}
+
+.economies-table .fdi-net.positive {
+  color: #27ae60;
+}
+
+.economies-table .fdi-net.negative {
+  color: #e74c3c;
+}
+
+.economies-table .trade-balance {
+  font-weight: 500;
+}
+
+.economies-table .trade-balance.surplus {
+  color: #27ae60;
+}
+
+.economies-table .trade-balance.deficit {
+  color: #e74c3c;
+}
+
 .economies-table .year {
   color: #666;
 }
