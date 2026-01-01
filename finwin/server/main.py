@@ -11,23 +11,26 @@ from pydantic import BaseModel
 
 from finwin.collector import ContextCollector
 from finwin.models.context import StockContext
-from finwin.sources.financials.yfinance import YFinanceSource
-from finwin.sources.news.google import GoogleNewsSource
-from finwin.sources.web.fetcher import WebFetcher
+from finwin.config.settings import get_settings
+from finwin.providers.financials.yfinance import YFinanceProvider
+from finwin.providers.news.google import GoogleNewsProvider
+from finwin.providers.web.fetcher import WebFetcherProvider
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+settings = get_settings()
+
 app = FastAPI(
     title="Finwin Context API",
     description="API for gathering financial context about stocks/companies",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 # Enable CORS for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
+    allow_origins=settings.server.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -75,12 +78,12 @@ async def get_context(
         )
     
     try:
-        # Create collector with default sources
+        # Create collector with providers
         async with ContextCollector(
             sources=[
-                GoogleNewsSource(max_items=news_count),
-                YFinanceSource(),
-                WebFetcher(),
+                GoogleNewsProvider(max_items=news_count),
+                YFinanceProvider(),
+                WebFetcherProvider(),
             ]
         ) as collector:
             context = await collector.gather(
@@ -109,9 +112,9 @@ async def post_context(request: ContextRequest) -> StockContext:
     try:
         async with ContextCollector(
             sources=[
-                GoogleNewsSource(max_items=request.news_count),
-                YFinanceSource(),
-                WebFetcher(),
+                GoogleNewsProvider(max_items=request.news_count),
+                YFinanceProvider(),
+                WebFetcherProvider(),
             ]
         ) as collector:
             context = await collector.gather(
@@ -128,7 +131,12 @@ async def post_context(request: ContextRequest) -> StockContext:
 def main() -> None:
     """Run the server with uvicorn."""
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        app,
+        host=settings.server.host,
+        port=settings.server.port,
+        reload=settings.server.reload,
+    )
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from finwin.cache.base import BaseCache
 from finwin.models.config import CollectorConfig
@@ -16,27 +16,35 @@ from finwin.models.context import (
     SourceResult,
     StockContext,
 )
+
+# Import both for backwards compatibility
 from finwin.sources.base import BaseSource
+from finwin.providers.base import BaseProvider, ProviderResult
 
 logger = logging.getLogger(__name__)
+
+# Type alias for sources (supports both old and new)
+DataSource = Union[BaseSource, BaseProvider]
 
 
 class ContextCollector:
     """
     Main orchestrator for gathering stock context.
     
-    Coordinates multiple data sources and aggregates results
+    Coordinates multiple data sources/providers and aggregates results
     into a unified StockContext object.
+    
+    Supports both legacy sources and new providers.
     
     Example:
         ```python
         from finwin import ContextCollector
-        from finwin.sources import GoogleNewsSource, YFinanceSource
+        from finwin.providers import GoogleNewsProvider, YFinanceProvider
         
         collector = ContextCollector(
             sources=[
-                GoogleNewsSource(max_items=10),
-                YFinanceSource(),
+                GoogleNewsProvider(max_items=10),
+                YFinanceProvider(),
             ]
         )
         
@@ -49,7 +57,7 @@ class ContextCollector:
     
     def __init__(
         self,
-        sources: Optional[List[BaseSource]] = None,
+        sources: Optional[List[DataSource]] = None,
         config: Optional[CollectorConfig] = None,
         cache: Optional[BaseCache] = None,
     ):
@@ -57,7 +65,7 @@ class ContextCollector:
         Initialize collector.
         
         Args:
-            sources: List of data sources to use
+            sources: List of data sources/providers to use
             config: Configuration settings
             cache: Optional cache implementation
         """
@@ -65,9 +73,9 @@ class ContextCollector:
         self.config = config or CollectorConfig()
         self.cache = cache
     
-    def add_source(self, source: BaseSource) -> "ContextCollector":
+    def add_source(self, source: DataSource) -> "ContextCollector":
         """
-        Add a data source.
+        Add a data source/provider.
         
         Args:
             source: Source to add
@@ -101,7 +109,9 @@ class ContextCollector:
         
         # Check cache first
         if self.cache:
-            cache_key = self.cache.make_key("context", symbol or "", query or "")
+            cache_key = self.cache.make_key(
+                "context", symbol or "", query or ""
+            )
             cached = await self.cache.get(cache_key)
             if cached:
                 logger.info(f"Cache hit for {cache_key}")
@@ -137,11 +147,13 @@ class ContextCollector:
                         success=False,
                         error=str(result),
                     ))
-                elif isinstance(result, SourceResult):
-                    context.add_source_result(result)
+                else:
+                    # Convert ProviderResult to SourceResult if needed
+                    source_result = self._to_source_result(result)
+                    context.add_source_result(source_result)
                     
-                    # Extract structured data from specific sources
-                    self._process_source_result(context, result)
+                    # Extract structured data
+                    self._process_source_result(context, source_result)
         
         # Cache the result
         if self.cache:
@@ -153,14 +165,31 @@ class ContextCollector:
         
         return context
     
+    def _to_source_result(
+        self,
+        result: Union[SourceResult, ProviderResult],
+    ) -> SourceResult:
+        """Convert ProviderResult to SourceResult for compatibility."""
+        if isinstance(result, SourceResult):
+            return result
+        
+        # Convert ProviderResult to SourceResult
+        return SourceResult(
+            name=result.provider_name,
+            success=result.success,
+            error=result.error,
+            data=result.data,
+            raw_texts=result.raw_texts,
+        )
+    
     async def _gather_from_source(
         self,
-        source: BaseSource,
+        source: DataSource,
         symbol: Optional[str],
         query: Optional[str],
         extra_urls: Optional[List[str]],
         **kwargs: Any,
-    ) -> SourceResult:
+    ) -> Union[SourceResult, ProviderResult]:
         """Gather data from a single source."""
         # Pass extra_urls to web fetcher
         if source.name == "web" and extra_urls:
@@ -184,14 +213,18 @@ class ContextCollector:
             # Extract news articles
             articles_data = result.data.get("articles", [])
             for article_data in articles_data:
-                context.news.append(NewsArticle.model_validate(article_data))
+                context.news.append(
+                    NewsArticle.model_validate(article_data)
+                )
         
         elif result.name == "web" and result.success:
             # Extract fetch results
             from finwin.models.context import FetchResult
             fetches_data = result.data.get("fetches", [])
             for fetch_data in fetches_data:
-                context.fetches.append(FetchResult.model_validate(fetch_data))
+                context.fetches.append(
+                    FetchResult.model_validate(fetch_data)
+                )
     
     async def close(self) -> None:
         """Close all sources and release resources."""

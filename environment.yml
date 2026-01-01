@@ -16,3 +16,4 @@ dependencies:
       - httpx
       - fastapi
       - uvicorn[standard]
+      - pydantic-settings>=2.0
