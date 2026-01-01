@@ -8,7 +8,9 @@ dependencies:
   - requests
   - feedparser
   - beautifulsoup4
+  - pydantic>=2.0
   - pip:
       - trafilatura
       - yfinance
       - pdfminer.six
+      - httpx
