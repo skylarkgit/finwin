@@ -138,6 +138,55 @@
   color: var(--text-color, #fff);
 }
 
+/* Section Header with Filter Controls */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #888;
+  transition: color 0.2s;
+}
+
+.filter-checkbox:hover {
+  color: var(--text-color, #fff);
+}
+
+.filter-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent-color, #3498db);
+}
+
+.filter-count {
+  font-size: 0.85rem;
+  color: #666;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
 /* World GDP Chart */
 .world-gdp-chart {
   display: flex;

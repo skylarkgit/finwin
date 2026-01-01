@@ -15,10 +15,11 @@ export function MacroDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   
-  // Pagination & sorting state
+  // Pagination, sorting & filtering state
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>('gdp');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [showCountriesOnly, setShowCountriesOnly] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -39,11 +40,16 @@ export function MacroDashboard() {
     }
   };
 
-  // Sorted and paginated countries
-  const { sortedCountries, totalPages, paginatedCountries } = useMemo(() => {
-    if (!data) return { sortedCountries: [], totalPages: 0, paginatedCountries: [] };
+  // Filtered, sorted and paginated countries
+  const { sortedCountries, totalPages, paginatedCountries, totalFiltered } = useMemo(() => {
+    if (!data) return { sortedCountries: [], totalPages: 0, paginatedCountries: [], totalFiltered: 0 };
     
-    const sorted = [...data.countries].sort((a, b) => {
+    // Filter: if showCountriesOnly, only include entries with a region (actual countries)
+    const filtered = showCountriesOnly 
+      ? data.countries.filter(c => c.region && c.region.trim() !== '')
+      : data.countries;
+    
+    const sorted = [...filtered].sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
         case 'rank':
@@ -73,8 +79,13 @@ export function MacroDashboard() {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     const paginated = sorted.slice(start, start + ITEMS_PER_PAGE);
     
-    return { sortedCountries: sorted, totalPages: total, paginatedCountries: paginated };
-  }, [data, sortField, sortDirection, currentPage]);
+    return { sortedCountries: sorted, totalPages: total, paginatedCountries: paginated, totalFiltered: filtered.length };
+  }, [data, sortField, sortDirection, currentPage, showCountriesOnly]);
+
+  const handleFilterChange = () => {
+    setShowCountriesOnly(prev => !prev);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -161,7 +172,22 @@ export function MacroDashboard() {
       </section>
 
       <section className="section top-economies">
-        <h2>🏆 Top Economies</h2>
+        <div className="section-header">
+          <h2>🏆 Top Economies</h2>
+          <div className="filter-controls">
+            <label className="filter-checkbox">
+              <input 
+                type="checkbox" 
+                checked={showCountriesOnly} 
+                onChange={handleFilterChange}
+              />
+              <span>Countries only (exclude aggregates)</span>
+            </label>
+            <span className="filter-count">
+              Showing {totalFiltered} of {data.countries.length} entries
+            </span>
+          </div>
+        </div>
         <TopEconomiesTable 
           countries={paginatedCountries}
           allCountries={sortedCountries}
