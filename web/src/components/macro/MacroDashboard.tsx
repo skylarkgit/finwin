@@ -5,6 +5,8 @@ import { WorldGDPChart } from './WorldGDPChart';
 import { RegionalBreakdown } from './RegionalBreakdown';
 import { TopEconomiesTable, type SortField, type SortDirection } from './TopEconomiesTable';
 import { CountryComparisonChart } from './CountryComparisonChart';
+import { FDIFlowsChart } from './FDIFlowsChart';
+import { TradeBalanceChart } from './TradeBalanceChart';
 import './MacroDashboard.css';
 
 const ITEMS_PER_PAGE = 20;
@@ -169,6 +171,18 @@ export function MacroDashboard() {
       <section className="section regional-breakdown">
         <h2>🗺️ GDP by Region</h2>
         <RegionalBreakdown regions={gdp_summary.region_totals} />
+      </section>
+
+      <section className="section fdi-flows">
+        <h2>💰 Foreign Direct Investment (FDI) Flows</h2>
+        <p className="section-subtitle">Where is capital flowing? Top destinations for international investment.</p>
+        <FDIFlowsChart countries={data.countries} limit={15} />
+      </section>
+
+      <section className="section trade-balance">
+        <h2>⚖️ Trade Balance (Exports − Imports)</h2>
+        <p className="section-subtitle">Countries with trade surplus (green) vs trade deficit (red).</p>
+        <TradeBalanceChart countries={data.countries} limit={20} />
       </section>
 
       <section className="section top-economies">

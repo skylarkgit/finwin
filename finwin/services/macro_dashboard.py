@@ -52,6 +52,10 @@ async def build_macro_dashboard(
     # Fetch optional indicators with fallback
     pop_by_country: Dict[str, MacroTimeSeries] = {}
     gdp_pc_by_country: Dict[str, MacroTimeSeries] = {}
+    fdi_in_by_country: Dict[str, MacroTimeSeries] = {}
+    fdi_out_by_country: Dict[str, MacroTimeSeries] = {}
+    exports_by_country: Dict[str, MacroTimeSeries] = {}
+    imports_by_country: Dict[str, MacroTimeSeries] = {}
     
     try:
         logger.info("Fetching population data...")
@@ -71,6 +75,44 @@ async def build_macro_dashboard(
     except Exception as e:
         logger.warning(f"Failed to fetch GDP per capita data: {e}")
     
+    # FDI data (Foreign Direct Investment)
+    try:
+        logger.info("Fetching FDI inflows data...")
+        fdi_in_by_country = await provider.get_indicator_all_countries(
+            "fdi_inflows", start, end
+        )
+        logger.info(f"FDI inflows loaded for {len(fdi_in_by_country)} entities")
+    except Exception as e:
+        logger.warning(f"Failed to fetch FDI inflows: {e}")
+    
+    try:
+        logger.info("Fetching FDI outflows data...")
+        fdi_out_by_country = await provider.get_indicator_all_countries(
+            "fdi_outflows", start, end
+        )
+        logger.info(f"FDI outflows loaded for {len(fdi_out_by_country)} entities")
+    except Exception as e:
+        logger.warning(f"Failed to fetch FDI outflows: {e}")
+    
+    # Trade data (exports/imports)
+    try:
+        logger.info("Fetching exports data...")
+        exports_by_country = await provider.get_indicator_all_countries(
+            "exports", start, end
+        )
+        logger.info(f"Exports loaded for {len(exports_by_country)} entities")
+    except Exception as e:
+        logger.warning(f"Failed to fetch exports: {e}")
+    
+    try:
+        logger.info("Fetching imports data...")
+        imports_by_country = await provider.get_indicator_all_countries(
+            "imports", start, end
+        )
+        logger.info(f"Imports loaded for {len(imports_by_country)} entities")
+    except Exception as e:
+        logger.warning(f"Failed to fetch imports: {e}")
+    
     # Build lookup tables
     country_by_code = {c.code: c for c in countries}
     country_by_name = {c.name: c for c in countries}
@@ -86,6 +128,10 @@ async def build_macro_dashboard(
         gdp_by_country,
         pop_by_country,
         gdp_pc_by_country,
+        fdi_in_by_country,
+        fdi_out_by_country,
+        exports_by_country,
+        imports_by_country,
         country_by_code,
         country_by_name,
     )
@@ -131,6 +177,10 @@ def _build_country_list(
     gdp_by_country: Dict[str, MacroTimeSeries],
     pop_by_country: Dict[str, MacroTimeSeries],
     gdp_pc_by_country: Dict[str, MacroTimeSeries],
+    fdi_in_by_country: Dict[str, MacroTimeSeries],
+    fdi_out_by_country: Dict[str, MacroTimeSeries],
+    exports_by_country: Dict[str, MacroTimeSeries],
+    imports_by_country: Dict[str, MacroTimeSeries],
     country_by_code: Dict[str, CountryInfo],
     country_by_name: Dict[str, CountryInfo],
 ) -> List[CountryInfo]:
@@ -161,6 +211,36 @@ def _build_country_list(
         gdp_pc_latest = gdp_pc_ts.get_latest() if gdp_pc_ts else None
         gdp_per_capita = gdp_pc_latest.value if gdp_pc_latest else None
         
+        # Get FDI data (optional)
+        fdi_in_ts = fdi_in_by_country.get(code)
+        fdi_in_latest = fdi_in_ts.get_latest() if fdi_in_ts else None
+        fdi_inflows = fdi_in_latest.value if fdi_in_latest else None
+        
+        fdi_out_ts = fdi_out_by_country.get(code)
+        fdi_out_latest = fdi_out_ts.get_latest() if fdi_out_ts else None
+        fdi_outflows = fdi_out_latest.value if fdi_out_latest else None
+        
+        # Calculate net FDI (inflows - outflows)
+        fdi_net = None
+        if fdi_inflows is not None and fdi_outflows is not None:
+            fdi_net = fdi_inflows - fdi_outflows
+        elif fdi_inflows is not None:
+            fdi_net = fdi_inflows
+        
+        # Get trade data (optional)
+        exp_ts = exports_by_country.get(code)
+        exp_latest = exp_ts.get_latest() if exp_ts else None
+        exports = exp_latest.value if exp_latest else None
+        
+        imp_ts = imports_by_country.get(code)
+        imp_latest = imp_ts.get_latest() if imp_ts else None
+        imports = imp_latest.value if imp_latest else None
+        
+        # Calculate trade balance
+        trade_balance = None
+        if exports is not None and imports is not None:
+            trade_balance = exports - imports
+        
         if info:
             result.append(CountryInfo(
                 code=code,
@@ -174,6 +254,12 @@ def _build_country_list(
                 gdp_per_capita=gdp_per_capita,
                 population=population,
                 population_year=pop_year,
+                fdi_inflows=fdi_inflows,
+                fdi_outflows=fdi_outflows,
+                fdi_net=fdi_net,
+                exports=exports,
+                imports=imports,
+                trade_balance=trade_balance,
             ))
         elif gdp_ts.country_name and len(code) <= 3:
             # Include without full metadata (filter aggregates)
@@ -189,6 +275,12 @@ def _build_country_list(
                 gdp_per_capita=gdp_per_capita,
                 population=population,
                 population_year=pop_year,
+                fdi_inflows=fdi_inflows,
+                fdi_outflows=fdi_outflows,
+                fdi_net=fdi_net,
+                exports=exports,
+                imports=imports,
+                trade_balance=trade_balance,
             ))
     
     return result

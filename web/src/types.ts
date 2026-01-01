@@ -107,6 +107,15 @@ export interface CountryInfo {
   gdp_per_capita: number | null;
   population: number | null;
   population_year: number | null;
+  // FDI (Foreign Direct Investment)
+  fdi_inflows: number | null;
+  fdi_outflows: number | null;
+  fdi_net: number | null;
+  // Trade
+  exports: number | null;
+  imports: number | null;
+  trade_balance: number | null;
+  // Other metrics
   inflation: number | null;
   unemployment: number | null;
 }

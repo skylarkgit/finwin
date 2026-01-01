@@ -27,6 +27,12 @@ INDICATOR_CODES = {
     "inflation": "FP.CPI.TOTL.ZG",      # Inflation, consumer prices
     "unemployment": "SL.UEM.TOTL.ZS",   # Unemployment, total (% of labor)
     "population": "SP.POP.TOTL",        # Population, total
+    # FDI indicators
+    "fdi_inflows": "BX.KLT.DINV.CD.WD",  # FDI net inflows (BoP, current US$)
+    "fdi_outflows": "BM.KLT.DINV.CD.WD", # FDI net outflows (BoP, current US$)
+    # Trade indicators
+    "exports": "NE.EXP.GNFS.CD",        # Exports of goods and services (current US$)
+    "imports": "NE.IMP.GNFS.CD",        # Imports of goods and services (current US$)
 }
 
 INDICATOR_INFO = {
@@ -77,6 +83,38 @@ INDICATOR_INFO = {
         unit="people",
         source="World Bank",
         worldbank_code="SP.POP.TOTL",
+    ),
+    "fdi_inflows": MacroIndicatorInfo(
+        id="fdi_inflows",
+        name="FDI Net Inflows (current US$)",
+        description="Foreign direct investment, net inflows (BoP, current US$)",
+        unit="USD",
+        source="World Bank",
+        worldbank_code="BX.KLT.DINV.CD.WD",
+    ),
+    "fdi_outflows": MacroIndicatorInfo(
+        id="fdi_outflows",
+        name="FDI Net Outflows (current US$)",
+        description="Foreign direct investment, net outflows (BoP, current US$)",
+        unit="USD",
+        source="World Bank",
+        worldbank_code="BM.KLT.DINV.CD.WD",
+    ),
+    "exports": MacroIndicatorInfo(
+        id="exports",
+        name="Exports of Goods & Services (current US$)",
+        description="Exports of goods and services (current US$)",
+        unit="USD",
+        source="World Bank",
+        worldbank_code="NE.EXP.GNFS.CD",
+    ),
+    "imports": MacroIndicatorInfo(
+        id="imports",
+        name="Imports of Goods & Services (current US$)",
+        description="Imports of goods and services (current US$)",
+        unit="USD",
+        source="World Bank",
+        worldbank_code="NE.IMP.GNFS.CD",
     ),
 }
 

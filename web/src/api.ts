@@ -168,3 +168,47 @@ export function formatPercent(value: number | null): string {
   if (value === null) return 'N/A';
   return `${value.toFixed(1)}%`;
 }
+
+// Format FDI (Foreign Direct Investment) - can be negative
+export function formatFDI(value: number | null): string {
+  if (value === null) return 'N/A';
+  
+  const absValue = Math.abs(value);
+  let formatted: string;
+  
+  if (absValue >= 1e12) {
+    formatted = `${(absValue / 1e12).toFixed(1)}T`;
+  } else if (absValue >= 1e9) {
+    formatted = `${(absValue / 1e9).toFixed(1)}B`;
+  } else if (absValue >= 1e6) {
+    formatted = `${(absValue / 1e6).toFixed(0)}M`;
+  } else {
+    formatted = absValue.toFixed(0);
+  }
+  
+  return value >= 0 ? `$${formatted}` : `-$${formatted}`;
+}
+
+// Format trade balance (positive = surplus, negative = deficit)
+export function formatTradeBalance(value: number | null): string {
+  if (value === null) return 'N/A';
+  
+  const absValue = Math.abs(value);
+  let formatted: string;
+  
+  if (absValue >= 1e12) {
+    formatted = `${(absValue / 1e12).toFixed(1)}T`;
+  } else if (absValue >= 1e9) {
+    formatted = `${(absValue / 1e9).toFixed(1)}B`;
+  } else if (absValue >= 1e6) {
+    formatted = `${(absValue / 1e6).toFixed(0)}M`;
+  } else {
+    formatted = absValue.toFixed(0);
+  }
+  
+  if (value >= 0) {
+    return `+$${formatted}`;  // Surplus
+  } else {
+    return `-$${formatted}`;  // Deficit
+  }
+}

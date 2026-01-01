@@ -111,6 +111,16 @@ class CountryInfo(BaseModel):
     population: Optional[float] = None
     population_year: Optional[int] = None
     
+    # FDI (Foreign Direct Investment)
+    fdi_inflows: Optional[float] = None  # Net inflows in current USD
+    fdi_outflows: Optional[float] = None  # Net outflows in current USD
+    fdi_net: Optional[float] = None  # Net FDI (inflows - outflows)
+    
+    # Trade
+    exports: Optional[float] = None  # Exports of goods & services (USD)
+    imports: Optional[float] = None  # Imports of goods & services (USD)
+    trade_balance: Optional[float] = None  # Exports - Imports
+    
     # Other key metrics
     inflation: Optional[float] = None
     unemployment: Optional[float] = None
