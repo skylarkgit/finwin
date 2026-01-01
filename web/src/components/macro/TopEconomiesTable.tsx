@@ -1,7 +1,7 @@
 import type { CountryInfo } from '../../types';
-import { formatGDP, formatGrowth } from '../../api';
+import { formatGDP, formatGrowth, formatPopulation, formatGDPPerCapita } from '../../api';
 
-type SortField = 'rank' | 'name' | 'region' | 'gdp' | 'growth';
+type SortField = 'rank' | 'name' | 'region' | 'gdp' | 'growth' | 'population' | 'gdp_per_capita';
 type SortDirection = 'asc' | 'desc';
 
 export interface TopEconomiesTableProps {
@@ -68,7 +68,8 @@ export function TopEconomiesTable({
             <SortHeader field="region" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>Region</SortHeader>
             <SortHeader field="gdp" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>GDP</SortHeader>
             <SortHeader field="growth" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>Growth</SortHeader>
-            <th>Year</th>
+            <SortHeader field="gdp_per_capita" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>GDP/Capita</SortHeader>
+            <SortHeader field="population" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>Population</SortHeader>
           </tr>
         </thead>
         <tbody>
@@ -94,7 +95,8 @@ export function TopEconomiesTable({
               <td className={`growth ${(country.gdp_growth ?? 0) >= 0 ? 'positive' : 'negative'}`}>
                 {formatGrowth(country.gdp_growth)}
               </td>
-              <td className="year">{country.latest_gdp_year}</td>
+              <td className="gdp-per-capita">{formatGDPPerCapita(country.gdp_per_capita)}</td>
+              <td className="population">{formatPopulation(country.population)}</td>
             </tr>
           ))}
         </tbody>

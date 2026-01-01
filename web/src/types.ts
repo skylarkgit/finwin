@@ -104,6 +104,11 @@ export interface CountryInfo {
   latest_gdp: number | null;
   latest_gdp_year: number | null;
   gdp_growth: number | null;
+  gdp_per_capita: number | null;
+  population: number | null;
+  population_year: number | null;
+  inflation: number | null;
+  unemployment: number | null;
 }
 
 export interface MacroIndicatorInfo {

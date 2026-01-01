@@ -59,6 +59,12 @@ export function MacroDashboard() {
         case 'growth':
           comparison = (a.gdp_growth ?? 0) - (b.gdp_growth ?? 0);
           break;
+        case 'population':
+          comparison = (a.population ?? 0) - (b.population ?? 0);
+          break;
+        case 'gdp_per_capita':
+          comparison = (a.gdp_per_capita ?? 0) - (b.gdp_per_capita ?? 0);
+          break;
       }
       return sortDirection === 'desc' ? -comparison : comparison;
     });

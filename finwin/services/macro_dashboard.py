@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from finwin.models.macro import (
     MacroTimeSeries,
@@ -24,28 +24,52 @@ async def build_macro_dashboard(
     top_n: int = 20,
 ) -> MacroDashboardData:
     """
-    Build aggregated macro dashboard data.
+    Build aggregated macro dashboard data with multiple indicators.
     
-    Args:
-        provider: World Bank provider instance
-        start_year: Start year for data range
-        end_year: End year for data range
-        top_n: Number of top countries to include
-        
-    Returns:
-        MacroDashboardData with summary, countries, and GDP data
+    Fetches indicators sequentially to avoid overwhelming the API.
+    If extra indicators fail, continues with just GDP data.
     """
     current_year = datetime.now().year
     start = start_year or (current_year - 20)
     end = end_year or current_year
     
-    # Fetch all data concurrently
-    gdp_by_country = await provider.get_gdp_all_countries(start_year=start, end_year=end)
-    world_gdp = await provider.get_indicator(indicator="gdp", country="WLD", start_year=start, end_year=end)
-    countries = await provider.get_countries()
-    
+    # Fetch GDP first (required)
+    logger.info("Fetching GDP data...")
+    gdp_by_country = await provider.get_indicator_all_countries(
+        "gdp", start, end
+    )
     logger.info(f"GDP data loaded for {len(gdp_by_country)} entities")
-    logger.info(f"Countries metadata loaded: {len(countries)} countries")
+    
+    # Fetch world GDP for summary
+    logger.info("Fetching World GDP...")
+    world_gdp = await provider.get_indicator("gdp", "WLD", start, end)
+    
+    # Fetch countries metadata
+    logger.info("Fetching countries metadata...")
+    countries = await provider.get_countries()
+    logger.info(f"Countries metadata: {len(countries)} countries")
+    
+    # Fetch optional indicators with fallback
+    pop_by_country: Dict[str, MacroTimeSeries] = {}
+    gdp_pc_by_country: Dict[str, MacroTimeSeries] = {}
+    
+    try:
+        logger.info("Fetching population data...")
+        pop_by_country = await provider.get_indicator_all_countries(
+            "population", start, end
+        )
+        logger.info(f"Population data loaded for {len(pop_by_country)} entities")
+    except Exception as e:
+        logger.warning(f"Failed to fetch population data: {e}")
+    
+    try:
+        logger.info("Fetching GDP per capita data...")
+        gdp_pc_by_country = await provider.get_indicator_all_countries(
+            "gdp_per_capita", start, end
+        )
+        logger.info(f"GDP/capita loaded for {len(gdp_pc_by_country)} entities")
+    except Exception as e:
+        logger.warning(f"Failed to fetch GDP per capita data: {e}")
     
     # Build lookup tables
     country_by_code = {c.code: c for c in countries}
@@ -53,22 +77,28 @@ async def build_macro_dashboard(
     
     # Calculate world GDP summary
     latest_world = world_gdp.get_latest()
-    world_growth = world_gdp.get_growth_rate(latest_world.year) if latest_world else None
+    world_growth = None
+    if latest_world:
+        world_growth = world_gdp.get_growth_rate(latest_world.year)
     
-    # Build country GDP list with metadata
-    country_latest_gdp = _build_country_gdp_list(
-        gdp_by_country, country_by_code, country_by_name
+    # Build country list with all available indicators
+    country_list = _build_country_list(
+        gdp_by_country,
+        pop_by_country,
+        gdp_pc_by_country,
+        country_by_code,
+        country_by_name,
     )
     
-    logger.info(f"Countries with GDP data: {len(country_latest_gdp)}")
+    logger.info(f"Countries with data: {len(country_list)}")
     
-    # Sort and select top N
+    # Sort by GDP and take top N
     top_countries = sorted(
-        country_latest_gdp, key=lambda x: x.latest_gdp or 0, reverse=True
+        country_list, key=lambda x: x.latest_gdp or 0, reverse=True
     )[:top_n]
     
     # Calculate regional totals
-    region_totals = _calculate_region_totals(country_latest_gdp)
+    region_totals = _calculate_region_totals(country_list)
     
     # Build summary
     summary = GlobalGDPSummary(
@@ -80,7 +110,7 @@ async def build_macro_dashboard(
         region_totals=region_totals,
         data_source="World Bank",
         last_updated=datetime.utcnow().isoformat(),
-        countries_count=len(country_latest_gdp),
+        countries_count=len(country_list),
     )
     
     # Only include top countries' GDP data to reduce payload
@@ -97,22 +127,39 @@ async def build_macro_dashboard(
     )
 
 
-def _build_country_gdp_list(
+def _build_country_list(
     gdp_by_country: Dict[str, MacroTimeSeries],
+    pop_by_country: Dict[str, MacroTimeSeries],
+    gdp_pc_by_country: Dict[str, MacroTimeSeries],
     country_by_code: Dict[str, CountryInfo],
     country_by_name: Dict[str, CountryInfo],
-) -> list[CountryInfo]:
-    """Build list of countries with their latest GDP data."""
+) -> List[CountryInfo]:
+    """Build list of countries with all indicator data."""
     result = []
     
-    for code, ts in gdp_by_country.items():
-        latest = ts.get_latest()
-        if not latest or not latest.value:
+    for code, gdp_ts in gdp_by_country.items():
+        latest_gdp = gdp_ts.get_latest()
+        if not latest_gdp or not latest_gdp.value:
             continue
             
-        # Try to find country metadata by code first, then by name
-        info = country_by_code.get(code) or country_by_name.get(ts.country_name)
-        growth = ts.get_growth_rate(latest.year)
+        # Find country metadata
+        info = country_by_code.get(code)
+        if not info:
+            info = country_by_name.get(gdp_ts.country_name)
+        
+        # Get GDP growth
+        gdp_growth = gdp_ts.get_growth_rate(latest_gdp.year)
+        
+        # Get population (optional)
+        pop_ts = pop_by_country.get(code)
+        pop_latest = pop_ts.get_latest() if pop_ts else None
+        population = pop_latest.value if pop_latest else None
+        pop_year = pop_latest.year if pop_latest else None
+        
+        # Get GDP per capita (optional)
+        gdp_pc_ts = gdp_pc_by_country.get(code)
+        gdp_pc_latest = gdp_pc_ts.get_latest() if gdp_pc_ts else None
+        gdp_per_capita = gdp_pc_latest.value if gdp_pc_latest else None
         
         if info:
             result.append(CountryInfo(
@@ -121,28 +168,33 @@ def _build_country_gdp_list(
                 region=info.region,
                 income_level=info.income_level,
                 capital=info.capital,
-                latest_gdp=latest.value,
-                latest_gdp_year=latest.year,
-                gdp_growth=growth,
+                latest_gdp=latest_gdp.value,
+                latest_gdp_year=latest_gdp.year,
+                gdp_growth=gdp_growth,
+                gdp_per_capita=gdp_per_capita,
+                population=population,
+                population_year=pop_year,
             ))
-        elif ts.country_name and len(code) <= 3:
-            # Include country even without full metadata
-            # (filter out aggregates which have short codes like ZH)
+        elif gdp_ts.country_name and len(code) <= 3:
+            # Include without full metadata (filter aggregates)
             result.append(CountryInfo(
                 code=code,
-                name=ts.country_name,
+                name=gdp_ts.country_name,
                 region="",
                 income_level="",
                 capital="",
-                latest_gdp=latest.value,
-                latest_gdp_year=latest.year,
-                gdp_growth=growth,
+                latest_gdp=latest_gdp.value,
+                latest_gdp_year=latest_gdp.year,
+                gdp_growth=gdp_growth,
+                gdp_per_capita=gdp_per_capita,
+                population=population,
+                population_year=pop_year,
             ))
     
     return result
 
 
-def _calculate_region_totals(countries: list[CountryInfo]) -> Dict[str, float]:
+def _calculate_region_totals(countries: List[CountryInfo]) -> Dict[str, float]:
     """Calculate total GDP by region."""
     totals: Dict[str, float] = {}
     for c in countries:

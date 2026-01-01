@@ -54,6 +54,30 @@ INDICATOR_INFO = {
         source="World Bank",
         worldbank_code="NY.GDP.PCAP.CD",
     ),
+    "inflation": MacroIndicatorInfo(
+        id="inflation",
+        name="Inflation (annual %)",
+        description="Inflation, consumer prices (annual %)",
+        unit="percent",
+        source="World Bank",
+        worldbank_code="FP.CPI.TOTL.ZG",
+    ),
+    "unemployment": MacroIndicatorInfo(
+        id="unemployment",
+        name="Unemployment (% of labor)",
+        description="Unemployment, total (% of labor force)",
+        unit="percent",
+        source="World Bank",
+        worldbank_code="SL.UEM.TOTL.ZS",
+    ),
+    "population": MacroIndicatorInfo(
+        id="population",
+        name="Population",
+        description="Total population",
+        unit="people",
+        source="World Bank",
+        worldbank_code="SP.POP.TOTL",
+    ),
 }
 
 
@@ -77,8 +101,9 @@ class WorldBankProvider(BaseMacroProvider):
     
     def __init__(
         self,
-        timeout: int = 30,
+        timeout: int = 90,
         cache_ttl: int = 604800,  # 7 days
+        max_retries: int = 3,
     ):
         """
         Initialize World Bank provider.
@@ -86,9 +111,11 @@ class WorldBankProvider(BaseMacroProvider):
         Args:
             timeout: HTTP request timeout in seconds
             cache_ttl: Cache TTL in seconds (default 7 days)
+            max_retries: Max retry attempts for failed requests
         """
         self.timeout = timeout
         self.cache_ttl = cache_ttl
+        self.max_retries = max_retries
         self._client: Optional[httpx.AsyncClient] = None
         self._cache = get_cache()
         self._countries_cache: Optional[List[CountryInfo]] = None
@@ -279,23 +306,38 @@ class WorldBankProvider(BaseMacroProvider):
         """Get list of available indicators."""
         return list(INDICATOR_INFO.values())
     
-    async def get_gdp_all_countries(
+    async def get_indicator_all_countries(
         self,
+        indicator: str,
         start_year: Optional[int] = None,
         end_year: Optional[int] = None,
     ) -> Dict[str, MacroTimeSeries]:
         """
-        Get GDP data for all countries efficiently.
+        Get indicator data for all countries efficiently.
         
-        Uses batch API call instead of per-country.
+        Args:
+            indicator: Indicator ID (gdp, population, gdp_per_capita, etc.)
+            start_year: Start year
+            end_year: End year
+            
+        Returns:
+            Dict mapping country code to MacroTimeSeries
         """
-        # Fetch all GDP data in one call
+        indicator_code = INDICATOR_CODES.get(indicator)
+        if not indicator_code:
+            raise ValueError(f"Unknown indicator: {indicator}")
+        
+        info = INDICATOR_INFO.get(indicator, MacroIndicatorInfo(
+            id=indicator, name=indicator
+        ))
+        
+        # Fetch all data in one call
         raw_data = await self._fetch_indicator(
-            indicator_code=INDICATOR_CODES["gdp"],
+            indicator_code=indicator_code,
             country="all",
             start_year=start_year,
             end_year=end_year,
-            per_page=20000,  # Get all data
+            per_page=20000,
         )
         
         # Group by country
@@ -329,22 +371,30 @@ class WorldBankProvider(BaseMacroProvider):
         
         # Convert to MacroTimeSeries
         result = {}
-        info = INDICATOR_INFO["gdp"]
-        
         for code, data_points in by_country.items():
             result[code] = MacroTimeSeries(
-                indicator_id="gdp",
+                indicator_id=indicator,
                 indicator_name=info.name,
                 country_code=code,
                 country_name=country_names.get(code, code),
                 data=data_points,
                 unit=info.unit,
-                scale="current",
+                scale="current" if "current" in info.name.lower() else "",
                 frequency=DataFrequency.ANNUAL,
                 source="World Bank",
             )
         
         return result
+
+    async def get_gdp_all_countries(
+        self,
+        start_year: Optional[int] = None,
+        end_year: Optional[int] = None,
+    ) -> Dict[str, MacroTimeSeries]:
+        """Get GDP data for all countries (convenience method)."""
+        return await self.get_indicator_all_countries(
+            "gdp", start_year, end_year
+        )
     
     def get_tool_description(self) -> str:
         """Get description for LLM tool use."""

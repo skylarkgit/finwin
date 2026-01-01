@@ -93,7 +93,7 @@ class MacroTimeSeries(BaseModel):
 
 
 class CountryInfo(BaseModel):
-    """Information about a country."""
+    """Information about a country with key economic indicators."""
     
     code: str  # ISO 3166-1 alpha-2 or alpha-3
     name: str
@@ -101,10 +101,19 @@ class CountryInfo(BaseModel):
     income_level: str = ""
     capital: str = ""
     
-    # Latest GDP data (for ranking)
+    # GDP indicators
     latest_gdp: Optional[float] = None
     latest_gdp_year: Optional[int] = None
     gdp_growth: Optional[float] = None
+    gdp_per_capita: Optional[float] = None
+    
+    # Population
+    population: Optional[float] = None
+    population_year: Optional[int] = None
+    
+    # Other key metrics
+    inflation: Optional[float] = None
+    unemployment: Optional[float] = None
 
 
 class MacroIndicatorInfo(BaseModel):
