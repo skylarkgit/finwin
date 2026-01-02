@@ -120,6 +120,7 @@ class CountryInfo(BaseModel):
     exports: Optional[float] = None  # Exports of goods & services (USD)
     imports: Optional[float] = None  # Imports of goods & services (USD)
     trade_balance: Optional[float] = None  # Exports - Imports
+    trade_balance_pct: Optional[float] = None  # Trade balance as % of GDP
     
     # Other key metrics
     inflation: Optional[float] = None

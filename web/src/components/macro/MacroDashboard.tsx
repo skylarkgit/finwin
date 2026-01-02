@@ -79,6 +79,9 @@ export function MacroDashboard() {
         case 'trade_balance':
           comparison = (a.trade_balance ?? 0) - (b.trade_balance ?? 0);
           break;
+        case 'trade_pct':
+          comparison = (a.trade_balance_pct ?? 0) - (b.trade_balance_pct ?? 0);
+          break;
       }
       return sortDirection === 'desc' ? -comparison : comparison;
     });

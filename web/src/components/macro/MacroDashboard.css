@@ -426,6 +426,18 @@
   color: #e74c3c;
 }
 
+.economies-table .trade-pct {
+  font-weight: 500;
+}
+
+.economies-table .trade-pct.surplus {
+  color: #27ae60;
+}
+
+.economies-table .trade-pct.deficit {
+  color: #e74c3c;
+}
+
 .economies-table .year {
   color: #666;
 }

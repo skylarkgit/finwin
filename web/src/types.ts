@@ -115,6 +115,7 @@ export interface CountryInfo {
   exports: number | null;
   imports: number | null;
   trade_balance: number | null;
+  trade_balance_pct: number | null;  // Trade balance as % of GDP
   // Other metrics
   inflation: number | null;
   unemployment: number | null;

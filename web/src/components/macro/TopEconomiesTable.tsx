@@ -1,7 +1,7 @@
 import type { CountryInfo } from '../../types';
-import { formatGDP, formatGrowth, formatPopulation, formatGDPPerCapita, formatFDI, formatTradeBalance } from '../../api';
+import { formatGDP, formatGrowth, formatPopulation, formatGDPPerCapita, formatFDI, formatTradeBalance, formatTradeBalancePct } from '../../api';
 
-type SortField = 'rank' | 'name' | 'region' | 'gdp' | 'growth' | 'population' | 'gdp_per_capita' | 'fdi_net' | 'trade_balance';
+type SortField = 'rank' | 'name' | 'region' | 'gdp' | 'growth' | 'population' | 'gdp_per_capita' | 'fdi_net' | 'trade_balance' | 'trade_pct';
 type SortDirection = 'asc' | 'desc';
 
 export interface TopEconomiesTableProps {
@@ -72,6 +72,7 @@ export function TopEconomiesTable({
             <SortHeader field="population" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>Population</SortHeader>
             <SortHeader field="fdi_net" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>FDI Net</SortHeader>
             <SortHeader field="trade_balance" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>Trade Bal.</SortHeader>
+            <SortHeader field="trade_pct" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>Trade/GDP</SortHeader>
           </tr>
         </thead>
         <tbody>
@@ -104,6 +105,9 @@ export function TopEconomiesTable({
               </td>
               <td className={`trade-balance ${(country.trade_balance ?? 0) >= 0 ? 'surplus' : 'deficit'}`}>
                 {formatTradeBalance(country.trade_balance)}
+              </td>
+              <td className={`trade-pct ${(country.trade_balance_pct ?? 0) >= 0 ? 'surplus' : 'deficit'}`}>
+                {formatTradeBalancePct(country.trade_balance_pct)}
               </td>
             </tr>
           ))}

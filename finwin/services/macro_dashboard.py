@@ -238,8 +238,12 @@ def _build_country_list(
         
         # Calculate trade balance
         trade_balance = None
+        trade_balance_pct = None
         if exports is not None and imports is not None:
             trade_balance = exports - imports
+            # Calculate trade balance as % of GDP
+            if latest_gdp.value and latest_gdp.value > 0:
+                trade_balance_pct = (trade_balance / latest_gdp.value) * 100
         
         if info:
             result.append(CountryInfo(
@@ -260,6 +264,7 @@ def _build_country_list(
                 exports=exports,
                 imports=imports,
                 trade_balance=trade_balance,
+                trade_balance_pct=trade_balance_pct,
             ))
         elif gdp_ts.country_name and len(code) <= 3:
             # Include without full metadata (filter aggregates)
@@ -281,6 +286,7 @@ def _build_country_list(
                 exports=exports,
                 imports=imports,
                 trade_balance=trade_balance,
+                trade_balance_pct=trade_balance_pct,
             ))
     
     return result

@@ -189,6 +189,13 @@ export function formatFDI(value: number | null): string {
   return value >= 0 ? `$${formatted}` : `-$${formatted}`;
 }
 
+// Format trade balance percentage (as % of GDP)
+export function formatTradeBalancePct(value: number | null): string {
+  if (value === null) return 'N/A';
+  const sign = value >= 0 ? '+' : '';
+  return `${sign}${value.toFixed(1)}%`;
+}
+
 // Format trade balance (positive = surplus, negative = deficit)
 export function formatTradeBalance(value: number | null): string {
   if (value === null) return 'N/A';
